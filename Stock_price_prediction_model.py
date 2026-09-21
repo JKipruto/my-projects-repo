@@ -16,6 +16,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 # visualizing the data using different plots
 # get my target variable
 # Creating a function where I'll test for the best parameter of each algorithm/model
+# try to push to github
 
 if os.path.exists("AMAZON_daily.csv"):
     print("Available")
@@ -23,6 +24,7 @@ if os.path.exists("AMAZON_daily.csv"):
     stock_data = stock_data.rename(
         columns={"Adj Close": "Volume", "Volume": "Adj Close"})
 
+    # sothat it's the data from 10 years range
     stock_data = stock_data.drop(index=range(0, 4689))
     print(stock_data.describe())
     print(stock_data.isnull().sum())
@@ -47,5 +49,61 @@ if os.path.exists("AMAZON_daily.csv"):
 
     x = stock_data.drop("Close", axis=1)
     y = stock_data["Close"]
+
+    # To show me how the close price and volume change over the years
+    line_x = pd.to_datetime(
+        stock_data[["year", "month", "day"]], errors="coerce")
+    print(line_x.head())
+    plt.figure(figsize=(12, 12))
+    sns.lineplot(x=line_x, y=stock_data["Close"])
+    plt.yscale("log")
+    plt.ylabel("Close price (USD, log)")
+    plt.title("Close pric over the years")
+
+    # To analyze how volume of shares has changed over time
+    sns.lineplot(x=line_x, y=stock_data["Volume"])
+    plt.yscale("log")
+    plt.ylabel("Volume (shares, log)")
+    plt.xlabel("Date")
+    plt.tight_layout()
+    plt.show()
+
+    # Comparison between different prices and the closing price how they change
+    plt.figure(figsize=(6, 6))
+    sns.scatterplot(data=stock_data, x="Open",
+                    y="Close", label="open vs close")
+    sns.scatterplot(data=stock_data, x="High",
+                    y="Close", label="High Vs Close")
+    sns.scatterplot(data=stock_data, x="Low", y="Close", label="Low vs Close")
+    plt.xlabel("Prices (Open, High and Low)in USD")
+    plt.ylabel("Closing Price")
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.title("Close Price Vs Other prices(Open, High and Low)")
+    plt.legend()
+    plt.show()
+
+    plt.figure(figsize=(7, 6))
+    sns.scatterplot(data=stock_data, x="Volume", y="Close", s=8, alpha=0.4)
+    plt.xscale("log")
+    plt.yscale("log")
+    plt.show()
+
+    # Histogram--->For frequencies and to check how skewness
+    plt.figure(figsize=(12, 12))
+    sns.histplot(data=stock_data, x="Close", bins=30)
+    plt.xlabel("Close Price")
+    plt.ylabel("Frequency")
+    plt.title("Distribution of Closing Prices")
+    plt.show()
+
+    # To check for outliers--->Boxplot
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(
+        data=stock_data[["Open", "High", "Low", "Close"]])
+
+    plt.title("Distribution of Stock Prices")
+    plt.show()
+
 else:
     print("File unavailable")
