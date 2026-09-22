@@ -15,7 +15,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 # data from amazon
 # visualizing the data using different plots
 # get my target variable
-# Creating a function where I'll test for the best parameter of each algorithm/model
+# Creating a function where I'll test for the best value of hyperparameter of each algorithm/model
 # try to push to github
 
 if os.path.exists("AMAZON_daily.csv"):
@@ -43,17 +43,15 @@ if os.path.exists("AMAZON_daily.csv"):
 
     # Since it has same values as the close price
     stock_data = stock_data.drop(columns=["Adj Close"])
-    stock_data.to_csv("Amazon_daily_fixed.csv")
+    stock_data.to_csv("Amazon_daily_fixed.csv", index=False)
     print(stock_data.head())
     # next is to visualize the data
-
-    x = stock_data.drop("Close", axis=1)
-    y = stock_data["Close"]
 
     # To show me how the close price and volume change over the years
     line_x = pd.to_datetime(
         stock_data[["year", "month", "day"]], errors="coerce")
     print(line_x.head())
+
     plt.figure(figsize=(12, 12))
     sns.lineplot(x=line_x, y=stock_data["Close"])
     plt.yscale("log")
@@ -89,6 +87,12 @@ if os.path.exists("AMAZON_daily.csv"):
     plt.yscale("log")
     plt.show()
 
+    plt.figure(figsize=(12, 12))
+    sns.barplot(data=stock_data, x="year", y="Close")
+    sns.barplot(data=stock_data, x="month", y="Close")
+    plt.title("Close price against years and months")
+    plt.show()
+
     # Histogram--->For frequencies and to check how skewness
     plt.figure(figsize=(12, 12))
     sns.histplot(data=stock_data, x="Close", bins=30)
@@ -105,5 +109,13 @@ if os.path.exists("AMAZON_daily.csv"):
     plt.title("Distribution of Stock Prices")
     plt.show()
 
+    # To show correlations to know which features I will use
+    plt.figure(figsize=(12, 12))
+    sns.heatmap(stock_data.corr(), annot=True,
+                cmap="coolwarm", fmt=".4f", square=True, vmin=-1, vmax=1)
+    plt.title("Feature Correlations")
+    plt.show()
+
+    print(stock_data[["Open", "High", "Low", "Close", "Volume"]].corr())
 else:
     print("File unavailable")
