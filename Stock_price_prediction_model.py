@@ -1,9 +1,9 @@
 import pandas as pd
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
@@ -116,6 +116,55 @@ if os.path.exists("AMAZON_daily.csv"):
     plt.title("Feature Correlations")
     plt.show()
 
+    # To test Multicollinearlity
     print(stock_data[["Open", "High", "Low", "Close", "Volume"]].corr())
+
+    split = int(len(stock_data)*0.8)
+    x = stock_data[["Open", "High", "Low", "Volume"]]
+    y = stock_data["Close"]
+    # Because stock prices are time-series data, I preserved chronological order when splitting the dataset to avoid training on future information hence I manually splitted them
+    x_train = x[:split]
+    x_test = x[split:]
+
+    y_train = y[:split]
+    y_test = y[split:]
+
+    x_scaler = StandardScaler()
+    y_scaler = StandardScaler()
+    x_train_scaled = x_scaler.fit_transform(x_train)
+    x_test_scaled = x_scaler.transform(x_test)
+
+    y_train_scaled = y_scaler.fit_transform(y_train)
+    y_test_scaled = y_scaler.transform(y_test)
+
+    models = {
+        "linear Reg": LinearRegression(),
+        "Ridge": Ridge(),  # alpha
+        "Lasso": Lasso(),  # alpha,max_iter
+        "Decision Tree": DecisionTreeRegressor(),  # max_depth,max_leaf_node
+        "SVR": SVR(),  # kernel,c,epsilon,gamma
+        "KNReg": KNeighborsRegressor(),  # no_of_neighbors
+        "Random Forest": RandomForestRegressor(),  # same as destree and add n_esimators
+        "Voting": VotingRegressor(),  # type,estimators
+        "Bagging": BaggingRegressor(),  # n_estimators,estimator
+        "Adaboost": AdaBoostRegressor(),  # n_estimators,(learning rate,loss)----later
+        # n_estimators,max_depth,(colsample_bytree,subsample)----I will add later
+        "XGboost": XGBRegressor()
+    }
+
+    alphas = 10 ** np.random.uniform(-3, 2)   # roughly 0.001 to 100
+    iterations = np.random.choice(np.arange(500, 10500, 500))
+    depths = np.random.randint(1, 20)
+    kernels = ["linear", "rbf", "poly"]
+    epsilons = np.random.uniform(0.0, 1.0)
+    neighbors = np.random.choice(np.arange(1, 20, 1))
+    number_of_esimators = np.random.choice(np.arange(100, 1050, 50))
+    bag_estimators = [DecisionTreeRegressor(max_depth=5, max_leaf_nodes=20), KNeighborsRegressor(
+        n_neighbors=10)]  # I will use a for loop for each estimator
+
+    voting_models = [("linearReg", LinearRegression()), ("DesTree",
+                                                         DecisionTreeRegressor()), ("KNReg", KNeighborsRegressor())]
+
+
 else:
     print("File unavailable")
