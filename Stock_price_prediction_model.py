@@ -135,7 +135,7 @@ if os.path.exists("AMAZON_daily.csv"):
 
     models = {
         "linear Reg": LinearRegression(),
-        "Ridge": Ridge(alpha=1.0, max_iter=3000),  # alpha
+        "Ridge": Ridge(alpha=1.0, max_iter=500),  # alpha
         "Lasso": Lasso(alpha=1.0, max_iter=3000),  # alpha,max_iter
         # max_depth,max_leaf_node
         "Decision Tree": DecisionTreeRegressor(max_depth=13, max_leaf_nodes=46),
