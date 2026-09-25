@@ -148,10 +148,10 @@ if os.path.exists("AMAZON_daily.csv"):
         "XGboost": XGBRegressor()
     }
 
-    alphas = 10 ** np.random.uniform(-3, 2)
-    depths = np.random.randint(1, 20)
-    leaf_nodes = np.random.choice(np.arange(1, 50, 1))
-    number_of_esimators = np.random.choice(np.arange(100, 1050, 50))
+    alphas = np.arange(-3, 3, 0.5)
+    depths = np.arange(1, 21, 1)
+    leaf_nodes = np.arange(1, 51, 1)
+    number_of_esimators = np.arange(100, 1050, 50)
     bag_estimators = [DecisionTreeRegressor(max_depth=5, max_leaf_nodes=20), KNeighborsRegressor(
         n_neighbors=10)]  # I will use a for loop for each estimator
 
@@ -160,15 +160,15 @@ if os.path.exists("AMAZON_daily.csv"):
     }
     lasso_parameter = {
         "alpha": alphas,
-        "iterations": np.random.choice(np.arange(500, 10500, 500))}
+        "iterations": np.arange(500, 10500, 500)}
     destree_parameters = {"depths": depths,
                           "leaf nodes": leaf_nodes}
     svr_parameters = {
         "kernel": ["linear", "rbf", "poly"],
-        "epsilon": np.random.uniform(0.0, 1.0)
+        "epsilon": np.arange(0.0, 1.0, 0.05)
     }
     knr_parameters = {
-        "n_neighbors": np.random.choice(np.arange(1, 20, 1))
+        "n_neighbors": np.arange(1, 20, 1)
     }
     rf_parameters = {
         "depths": depths,
@@ -181,7 +181,29 @@ if os.path.exists("AMAZON_daily.csv"):
     adaboost_parameters = {
         "n_estimators": number_of_esimators
     }
+    # for name, model in models.items():
+    # if name == "Ridge":
+    # grid_search = GridSearchCV(
+    # model,
+    # ridge_parameters,
+    # scoring="neg_mean_squared_error",
+    # cv=5
+    # )
+    # grid_search.fit(x_train_scaled, y_train)
+    # print(grid_search.best_params_)
+    # print(grid_search.best_score_)
 
+    # random_search = RandomizedSearchCV(
+    # model,
+    # ridge_parameters,
+    # n_iter=20,
+    # cv=5,
+    # scoring="neg_mean_square_error",
+    # random_state=42
+    # )
+
+    # random_search.fit(x_train_scaled, y_train)
+    # print(random_search.best_params_)
 
 else:
     print("File unavailable")
