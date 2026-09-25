@@ -13,6 +13,15 @@ from sklearn.ensemble import RandomForestRegressor, VotingRegressor, BaggingRegr
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
+
+def ridge_tuning(alpha, x_train, x_test, y_train, y_test):
+    model = Ridge(alpha)
+    model.fit(x_train, y_train)
+    model_pred = model.predict(x_test)
+    mse = mean_squared_error(y_test, model_pred)
+    return mse
+
+
 if os.path.exists("AMAZON_daily.csv"):
     print("Available")
     stock_data = pd.read_csv("Amazon_daily.csv")
@@ -148,7 +157,8 @@ if os.path.exists("AMAZON_daily.csv"):
         "XGboost": XGBRegressor()
     }
 
-    alphas = np.arange(-3, 3, 0.5)
+    alphas = [[-3.0, - 2.5, - 2.0, - 1.5, -
+              1.0, - 0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]]
     depths = np.arange(1, 21, 1)
     leaf_nodes = np.arange(1, 51, 1)
     number_of_esimators = np.arange(100, 1050, 50)
@@ -181,6 +191,10 @@ if os.path.exists("AMAZON_daily.csv"):
     adaboost_parameters = {
         "n_estimators": number_of_esimators
     }
+    for alpha in alphas:
+        result = ridge_tuning(alpha, x_train_scaled,
+                              x_test_scaled, y_train, y_test)
+        print(result)
     # for name, model in models.items():
     # if name == "Ridge":
     # grid_search = GridSearchCV(
