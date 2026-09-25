@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
@@ -11,12 +12,6 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor, VotingRegressor, BaggingRegressor, AdaBoostRegressor
 from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-# data from amazon
-# visualizing the data using different plots
-# get my target variable
-# Creating a function where I'll test for the best value of hyperparameter of each algorithm/model
-# try to push to github
 
 if os.path.exists("AMAZON_daily.csv"):
     print("Available")
@@ -134,8 +129,10 @@ if os.path.exists("AMAZON_daily.csv"):
     x_train_scaled = x_scaler.fit_transform(x_train)
     x_test_scaled = x_scaler.transform(x_test)
 
-    y_train_scaled = y_scaler.fit_transform(y_train)
-    y_test_scaled = y_scaler.transform(y_test)
+    voting_models = [
+        ("linearReg", LinearRegression()),
+        ("DesTree", DecisionTreeRegressor()),
+        ("KNReg", KNeighborsRegressor())]
 
     models = {
         "linear Reg": LinearRegression(),
@@ -145,25 +142,45 @@ if os.path.exists("AMAZON_daily.csv"):
         "SVR": SVR(),  # kernel,c,epsilon,gamma
         "KNReg": KNeighborsRegressor(),  # no_of_neighbors
         "Random Forest": RandomForestRegressor(),  # same as destree and add n_esimators
-        "Voting": VotingRegressor(),  # type,estimators
+        "Voting": VotingRegressor(estimators=voting_models),  # type,estimators
         "Bagging": BaggingRegressor(),  # n_estimators,estimator
         "Adaboost": AdaBoostRegressor(),  # n_estimators,(learning rate,loss)----later
-        # n_estimators,max_depth,(colsample_bytree,subsample)----I will add later
         "XGboost": XGBRegressor()
     }
 
-    alphas = 10 ** np.random.uniform(-3, 2)   # roughly 0.001 to 100
-    iterations = np.random.choice(np.arange(500, 10500, 500))
+    alphas = 10 ** np.random.uniform(-3, 2)
     depths = np.random.randint(1, 20)
-    kernels = ["linear", "rbf", "poly"]
-    epsilons = np.random.uniform(0.0, 1.0)
-    neighbors = np.random.choice(np.arange(1, 20, 1))
+    leaf_nodes = np.random.choice(np.arange(1, 50, 1))
     number_of_esimators = np.random.choice(np.arange(100, 1050, 50))
     bag_estimators = [DecisionTreeRegressor(max_depth=5, max_leaf_nodes=20), KNeighborsRegressor(
         n_neighbors=10)]  # I will use a for loop for each estimator
 
-    voting_models = [("linearReg", LinearRegression()), ("DesTree",
-                                                         DecisionTreeRegressor()), ("KNReg", KNeighborsRegressor())]
+    ridge_parameters = {
+        "alpha": alphas
+    }
+    lasso_parameter = {
+        "alpha": alphas,
+        "iterations": np.random.choice(np.arange(500, 10500, 500))}
+    destree_parameters = {"depths": depths,
+                          "leaf nodes": leaf_nodes}
+    svr_parameters = {
+        "kernel": ["linear", "rbf", "poly"],
+        "epsilon": np.random.uniform(0.0, 1.0)
+    }
+    knr_parameters = {
+        "n_neighbors": np.random.choice(np.arange(1, 20, 1))
+    }
+    rf_parameters = {
+        "depths": depths,
+        "leaf nodes": leaf_nodes,
+        "n_estimators": number_of_esimators
+    }
+    bag_parametes = {
+        "n_estimators": number_of_esimators
+    }
+    adaboost_parameters = {
+        "n_estimators": number_of_esimators
+    }
 
 
 else:
