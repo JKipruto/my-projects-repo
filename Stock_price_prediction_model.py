@@ -157,8 +157,8 @@ if os.path.exists("AMAZON_daily.csv"):
         "XGboost": XGBRegressor()
     }
 
-    alphas = [[-3.0, - 2.5, - 2.0, - 1.5, -
-              1.0, - 0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]]
+    alphas = [-3.0, - 2.5, - 2.0, - 1.5, -
+              1.0, - 0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
     depths = np.arange(1, 21, 1)
     leaf_nodes = np.arange(1, 51, 1)
     number_of_esimators = np.arange(100, 1050, 50)
