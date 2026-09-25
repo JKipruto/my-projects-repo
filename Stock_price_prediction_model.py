@@ -4,23 +4,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, TimeSeriesSplit
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.svm import SVR
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.ensemble import RandomForestRegressor, VotingRegressor, BaggingRegressor, AdaBoostRegressor
-from xgboost import XGBRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
-
-def ridge_tuning(alpha, x_train, x_test, y_train, y_test):
-    model = Ridge(alpha)
-    model.fit(x_train, y_train)
-    model_pred = model.predict(x_test)
-    mse = mean_squared_error(y_test, model_pred)
-    return mse
-
 
 if os.path.exists("AMAZON_daily.csv"):
     print("Available")
@@ -145,44 +135,48 @@ if os.path.exists("AMAZON_daily.csv"):
 
     models = {
         "linear Reg": LinearRegression(),
-        "Ridge": Ridge(),  # alpha
-        "Lasso": Lasso(),  # alpha,max_iter
-        "Decision Tree": DecisionTreeRegressor(),  # max_depth,max_leaf_node
-        "SVR": SVR(),  # kernel,c,epsilon,gamma
-        "KNReg": KNeighborsRegressor(),  # no_of_neighbors
-        "Random Forest": RandomForestRegressor(),  # same as destree and add n_esimators
+        "Ridge": Ridge(alpha=1.0, max_iter=3000),  # alpha
+        "Lasso": Lasso(alpha=1.0, max_iter=3000),  # alpha,max_iter
+        # max_depth,max_leaf_node
+        "Decision Tree": DecisionTreeRegressor(max_depth=13, max_leaf_nodes=46),
+        # kernel,c,epsilon,gamma
+        "SVR": SVR(kernel="linear", epsilon=0.8, C=100),
+        "KNReg": KNeighborsRegressor(n_neighbors=3),  # no_of_neighbors
+        # same as destree and add n_esimators
+        "Random Forest": RandomForestRegressor(n_estimators=850, max_leaf_nodes=41, max_depth=16),
         "Voting": VotingRegressor(estimators=voting_models),  # type,estimators
         "Bagging": BaggingRegressor(),  # n_estimators,estimator
         "Adaboost": AdaBoostRegressor(),  # n_estimators,(learning rate,loss)----later
-        "XGboost": XGBRegressor()
     }
 
-    alphas = [-3.0, - 2.5, - 2.0, - 1.5, -
-              1.0, - 0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5]
+    alphas = (10.0**np.array([0.0, 0.5, 1.0, 1.5,
+              2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]))
     depths = np.arange(1, 21, 1)
-    leaf_nodes = np.arange(1, 51, 1)
-    number_of_esimators = np.arange(100, 1050, 50)
+    leaf_nodes = np.arange(2, 52, 1)
+    number_of_esimators = np.arange(100, 1100, 50)
     bag_estimators = [DecisionTreeRegressor(max_depth=5, max_leaf_nodes=20), KNeighborsRegressor(
         n_neighbors=10)]  # I will use a for loop for each estimator
 
     ridge_parameters = {
-        "alpha": alphas
+        "alpha": alphas,
+        "max_iter": np.arange(500, 10500, 500)
     }
     lasso_parameter = {
         "alpha": alphas,
-        "iterations": np.arange(500, 10500, 500)}
-    destree_parameters = {"depths": depths,
-                          "leaf nodes": leaf_nodes}
+        "max_iter": np.arange(500, 10500, 500)}
+    destree_parameters = {"max_depth": depths,
+                          "max_leaf_nodes": leaf_nodes}
     svr_parameters = {
         "kernel": ["linear", "rbf", "poly"],
-        "epsilon": np.arange(0.0, 1.0, 0.05)
+        "epsilon": np.arange(0.0, 1.0, 0.05),
+        "C": np.logspace(-2, 2, 10)
     }
     knr_parameters = {
-        "n_neighbors": np.arange(1, 20, 1)
+        "n_neighbors": np.arange(3, 20, 1)
     }
     rf_parameters = {
-        "depths": depths,
-        "leaf nodes": leaf_nodes,
+        "max_depth": depths,
+        "max_leaf_nodes": leaf_nodes,
         "n_estimators": number_of_esimators
     }
     bag_parametes = {
@@ -191,33 +185,120 @@ if os.path.exists("AMAZON_daily.csv"):
     adaboost_parameters = {
         "n_estimators": number_of_esimators
     }
-    for alpha in alphas:
-        result = ridge_tuning(alpha, x_train_scaled,
-                              x_test_scaled, y_train, y_test)
-        print(result)
-    # for name, model in models.items():
-    # if name == "Ridge":
-    # grid_search = GridSearchCV(
-    # model,
-    # ridge_parameters,
-    # scoring="neg_mean_squared_error",
-    # cv=5
-    # )
-    # grid_search.fit(x_train_scaled, y_train)
-    # print(grid_search.best_params_)
-    # print(grid_search.best_score_)
+    tscv = TimeSeriesSplit(n_splits=5)
+    for name, model in models.items():
+        if name == "Ridge":
+            ridge_grid_search = GridSearchCV(
+                model,
+                ridge_parameters,
+                scoring="neg_mean_squared_error",
+                cv=tscv
+            )
+            ridge_grid_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(ridge_grid_search.best_params_)
+            print(ridge_grid_search.best_score_)
+            print("=========\n")
 
-    # random_search = RandomizedSearchCV(
-    # model,
-    # ridge_parameters,
-    # n_iter=20,
-    # cv=5,
-    # scoring="neg_mean_square_error",
-    # random_state=42
-    # )
+        elif name == "Lasso":
+            lasso_grid_search = GridSearchCV(
+                model,
+                lasso_parameter,
+                scoring="neg_mean_squared_error",
+                cv=tscv
+            )
+            lasso_grid_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(lasso_grid_search.best_params_)
+            print(lasso_grid_search.best_score_)
+            print("=========\n")
 
-    # random_search.fit(x_train_scaled, y_train)
-    # print(random_search.best_params_)
+        elif name == "Decision Tree":
+            destree_grid_search = GridSearchCV(
+                model,
+                destree_parameters,
+                scoring="neg_mean_squared_error",
+                cv=tscv
+            )
+            destree_grid_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(destree_grid_search.best_params_)
+            print(destree_grid_search.best_params_)
+            print("=========\n")
 
+        elif name == "KNReg":
+            knn_grid_search = GridSearchCV(
+                model,
+                knr_parameters,
+                scoring="neg_mean_squared_error",
+                cv=tscv
+            )
+            knn_grid_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(knn_grid_search.best_params_)
+            print(knn_grid_search.best_score_)
+            print("=========\n")
+
+        elif name == "SVR":
+            svr_random_search = RandomizedSearchCV(
+                model,
+                svr_parameters,
+                n_iter=20,
+                cv=tscv,
+                scoring="neg_mean_squared_error",
+                random_state=42
+            )
+            svr_random_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(svr_random_search.best_params_)
+            print(svr_random_search.best_score_)
+            print("=========\n")
+
+        elif name == "Random Forest":
+            rf_random_search = RandomizedSearchCV(
+                model,
+                rf_parameters,
+                n_iter=20,
+                cv=tscv,
+                scoring="neg_mean_squared_error",
+                random_state=42
+            )
+            rf_random_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(rf_random_search.best_params_)
+            print(rf_random_search.best_score_)
+            print("=========\n")
+
+        elif name == "Bagging":
+            bag_random_search = RandomizedSearchCV(
+                model,
+                bag_parametes,
+                n_iter=20,
+                cv=tscv,
+                scoring="neg_mean_squared_error",
+                random_state=42
+            )
+            bag_random_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(bag_random_search.best_params_)
+            print(bag_random_search.best_score_)
+            print("=========\n")
+
+        elif name == "Adaboost":
+            adaboost_random_search = RandomizedSearchCV(
+                model,
+                adaboost_parameters,
+                n_iter=20,
+                cv=tscv,
+                scoring="neg_mean_squared_error",
+                random_state=42
+            )
+            adaboost_random_search.fit(x_train_scaled, y_train)
+            print(name)
+            print(adaboost_random_search.best_params_)
+            print(adaboost_random_search.best_score_)
+            print("=========\n")
+        else:
+            print("The models don't have hyperparameters")
 else:
     print("File unavailable")
