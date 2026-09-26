@@ -104,13 +104,12 @@ if os.path.exists("AMAZON_daily.csv"):
     plt.title("Distribution of Stock Prices")
     plt.show()
 
-    # To show correlations to know which features I will use
-
-    # To test Multicollinearlity
     print(stock_data[["Open", "High", "Low", "Close", "Volume"]].corr())
 
     stock_data["Target"] = stock_data["Close"].shift(-1)
 
+    # To show correlations to know which features I will use
+    # To test Multicollinearlity
     plt.figure(figsize=(12, 12))
     sns.heatmap(stock_data.corr(), annot=True, cmap="coolwarm",
                 fmt=".4f", square=True, vmin=-1, vmax=1)
@@ -119,7 +118,7 @@ if os.path.exists("AMAZON_daily.csv"):
 
     stock_data = stock_data.dropna(subset=["Target"])
 
-    x = stock_data[["Open", "High", "Low", "Close", "Volume"]]
+    x = stock_data[["Open", "High", "Low", "Volume"]]
     y = stock_data["Target"]
 
     split = int(len(stock_data)*0.8)
@@ -135,7 +134,7 @@ if os.path.exists("AMAZON_daily.csv"):
     x_train_scaled = x_scaler.fit_transform(x_train)
     x_test_scaled = x_scaler.transform(x_test)
 
-    print(x_train.head())
+    print(stock_data.head())
 
     metrics = []
 
@@ -283,35 +282,35 @@ if os.path.exists("AMAZON_daily.csv"):
             print(rf_random_search.best_score_)
             print("=========\n")
 
-        elif name == "Bagging":
-            bag_random_search = RandomizedSearchCV(
-                model,
-                bag_parametes,
-                n_iter=20,
-                cv=tscv,
-                scoring="neg_mean_squared_error",
-                random_state=42
-            )
-            bag_random_search.fit(x_train_scaled, y_train)
-            print(name)
-            print(bag_random_search.best_params_)
-            print(bag_random_search.best_score_)
-            print("=========\n")
+        # elif name == "Bagging":
+            # bag_random_search = RandomizedSearchCV(
+            # model,
+            # bag_parametes,
+            # n_iter=20,
+            # cv=tscv,
+            # scoring="neg_mean_squared_error",
+            # random_state=42
+            # )
+            # bag_random_search.fit(x_train_scaled, y_train)
+            # print(name)
+            # print(bag_random_search.best_params_)
+            # print(bag_random_search.best_score_)
+            # print("=========\n")
 
-        elif name == "Adaboost":
-            adaboost_random_search = RandomizedSearchCV(
-                model,
-                adaboost_parameters,
-                n_iter=20,
-                cv=tscv,
-                scoring="neg_mean_squared_error",
-                random_state=42
-            )
-            adaboost_random_search.fit(x_train_scaled, y_train)
-            print(name)
-            print(adaboost_random_search.best_params_)
-            print(adaboost_random_search.best_score_)
-            print("=========\n")
+        # elif name == "Adaboost":
+         #   adaboost_random_search = RandomizedSearchCV(
+          #      model,
+           #     adaboost_parameters,
+            #    n_iter=20,
+            #   cv=tscv,
+            #  scoring="neg_mean_squared_error",
+            # random_state=42
+            # )
+            # adaboost_random_search.fit(x_train_scaled, y_train)
+            # print(name)
+            # print(adaboost_random_search.best_params_)
+            # print(adaboost_random_search.best_score_)
+            # print("=========\n")
         else:
             print("The models don't have hyperparameters")
 
@@ -323,8 +322,10 @@ if os.path.exists("AMAZON_daily.csv"):
     tuned_models["KNReg"] = knn_grid_search.best_estimator_
     tuned_models["SVR"] = svr_random_search.best_estimator_
     tuned_models["Random Forest"] = rf_random_search.best_estimator_
-    tuned_models["Bagging"] = bag_random_search.best_estimator_
-    tuned_models["Adaboost"] = adaboost_random_search.best_estimator_
+    tuned_models["Bagging"] = BaggingRegressor(
+        estimator=bag_adaboost_estimators[0], n_estimators=500)
+    tuned_models["Adaboost"] = AdaBoostRegressor(
+        estimator=bag_adaboost_estimators[0], n_estimators=500)
     tuned_models["linear Reg"] = LinearRegression()
     tuned_models["Voting"] = VotingRegressor(estimators=voting_models)
 
