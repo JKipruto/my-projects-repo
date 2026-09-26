@@ -3,6 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, TimeSeriesSplit
 from sklearn.linear_model import Lasso, Ridge, LinearRegression
@@ -104,18 +105,25 @@ if os.path.exists("AMAZON_daily.csv"):
     plt.show()
 
     # To show correlations to know which features I will use
-    plt.figure(figsize=(12, 12))
-    sns.heatmap(stock_data.corr(), annot=True,
-                cmap="coolwarm", fmt=".4f", square=True, vmin=-1, vmax=1)
-    plt.title("Feature Correlations")
-    plt.show()
 
     # To test Multicollinearlity
     print(stock_data[["Open", "High", "Low", "Close", "Volume"]].corr())
 
+    stock_data["Target"] = stock_data["Close"].shift(-1)
+
+    plt.figure(figsize=(12, 12))
+    sns.heatmap(stock_data.corr(), annot=True, cmap="coolwarm",
+                fmt=".4f", square=True, vmin=-1, vmax=1)
+    plt.title("Feature Correlations")
+    plt.show()
+
+    stock_data = stock_data.dropna(subset=["Target"])
+
+    x = stock_data[["Open", "High", "Low", "Close", "Volume"]]
+    y = stock_data["Target"]
+
     split = int(len(stock_data)*0.8)
-    x = stock_data[["Open", "High", "Low", "Volume"]]
-    y = stock_data["Close"]
+
     # Because stock prices are time-series data, I preserved chronological order when splitting the dataset to avoid training on future information hence I manually splitted them
     x_train = x[:split]
     x_test = x[split:]
@@ -124,29 +132,35 @@ if os.path.exists("AMAZON_daily.csv"):
     y_test = y[split:]
 
     x_scaler = StandardScaler()
-    y_scaler = StandardScaler()
     x_train_scaled = x_scaler.fit_transform(x_train)
     x_test_scaled = x_scaler.transform(x_test)
+
+    print(x_train.head())
+
+    metrics = []
 
     voting_models = [
         ("linearReg", LinearRegression()),
         ("DesTree", DecisionTreeRegressor()),
         ("KNReg", KNeighborsRegressor())]
 
+    # , KNeighborsRegressor(n_neighbors=10)]
+    bag_adaboost_estimators = [
+        DecisionTreeRegressor(max_depth=5, max_leaf_nodes=20)]
+
     models = {
-        "linear Reg": LinearRegression(),
-        "Ridge": Ridge(alpha=1.0, max_iter=500),  # alpha
-        "Lasso": Lasso(alpha=1.0, max_iter=3000),  # alpha,max_iter
+        "Ridge": Ridge(),  # alpha
+        "Lasso": Lasso(),  # alpha,max_iter
         # max_depth,max_leaf_node
-        "Decision Tree": DecisionTreeRegressor(max_depth=13, max_leaf_nodes=46),
+        "Decision Tree": DecisionTreeRegressor(),
         # kernel,c,epsilon,gamma
-        "SVR": SVR(kernel="linear", epsilon=0.8, C=100),
-        "KNReg": KNeighborsRegressor(n_neighbors=3),  # no_of_neighbors
+        "SVR": SVR(),
+        "KNReg": KNeighborsRegressor(),  # no_of_neighbors
         # same as destree and add n_esimators
-        "Random Forest": RandomForestRegressor(n_estimators=850, max_leaf_nodes=41, max_depth=16),
-        "Voting": VotingRegressor(estimators=voting_models),  # type,estimators
-        "Bagging": BaggingRegressor(),  # n_estimators,estimator
-        "Adaboost": AdaBoostRegressor(),  # n_estimators,(learning rate,loss)----later
+        "Random Forest": RandomForestRegressor(),
+        "Bagging": BaggingRegressor(),
+        # n_estimators,(learning rate,loss)----later
+        "Adaboost": AdaBoostRegressor()
     }
 
     alphas = (10.0**np.array([0.0, 0.5, 1.0, 1.5,
@@ -154,8 +168,7 @@ if os.path.exists("AMAZON_daily.csv"):
     depths = np.arange(1, 21, 1)
     leaf_nodes = np.arange(2, 52, 1)
     number_of_esimators = np.arange(100, 1100, 50)
-    bag_estimators = [DecisionTreeRegressor(max_depth=5, max_leaf_nodes=20), KNeighborsRegressor(
-        n_neighbors=10)]  # I will use a for loop for each estimator
+    # I will use a for loop for each estimator
 
     ridge_parameters = {
         "alpha": alphas,
@@ -180,7 +193,8 @@ if os.path.exists("AMAZON_daily.csv"):
         "n_estimators": number_of_esimators
     }
     bag_parametes = {
-        "n_estimators": number_of_esimators
+        "n_estimators": number_of_esimators,
+        "estimator": bag_adaboost_estimators
     }
     adaboost_parameters = {
         "n_estimators": number_of_esimators
@@ -223,7 +237,7 @@ if os.path.exists("AMAZON_daily.csv"):
             destree_grid_search.fit(x_train_scaled, y_train)
             print(name)
             print(destree_grid_search.best_params_)
-            print(destree_grid_search.best_params_)
+            print(destree_grid_search.best_score_)
             print("=========\n")
 
         elif name == "KNReg":
@@ -300,5 +314,35 @@ if os.path.exists("AMAZON_daily.csv"):
             print("=========\n")
         else:
             print("The models don't have hyperparameters")
+
+    tuned_models = {}
+
+    tuned_models["Ridge"] = ridge_grid_search.best_estimator_
+    tuned_models["Lasso"] = lasso_grid_search.best_estimator_
+    tuned_models["Decision Tree"] = destree_grid_search.best_estimator_
+    tuned_models["KNReg"] = knn_grid_search.best_estimator_
+    tuned_models["SVR"] = svr_random_search.best_estimator_
+    tuned_models["Random Forest"] = rf_random_search.best_estimator_
+    tuned_models["Bagging"] = bag_random_search.best_estimator_
+    tuned_models["Adaboost"] = adaboost_random_search.best_estimator_
+    tuned_models["linear Reg"] = LinearRegression()
+    tuned_models["Voting"] = VotingRegressor(estimators=voting_models)
+
+    for name, model in tuned_models.items():
+        model.fit(x_train_scaled, y_train)
+        model_prediction = model.predict(x_test_scaled)
+        metrics.append(
+            {
+                "Model": name,
+                "mean_absolute_error": mean_absolute_error(y_test, model_prediction),
+                "mean_squared_error": mean_squared_error(y_test, model_prediction),
+                "r2_score": r2_score(y_test, model_prediction)
+            }
+        )
+
+    metrics_df = pd.DataFrame(metrics)
+    print(metrics_df)
+
+
 else:
     print("File unavailable")
