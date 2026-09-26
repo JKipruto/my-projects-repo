@@ -118,7 +118,7 @@ if os.path.exists("AMAZON_daily.csv"):
 
     stock_data = stock_data.dropna(subset=["Target"])
 
-    x = stock_data[["Open", "High", "Low", "Volume"]]
+    x = stock_data[["Open", "High", "Low", "Close", "Volume"]]
     y = stock_data["Target"]
 
     split = int(len(stock_data)*0.8)
@@ -340,6 +340,21 @@ if os.path.exists("AMAZON_daily.csv"):
                 "r2_score": r2_score(y_test, model_prediction)
             }
         )
+
+        naive_pred = stock_data["Close"][split:]
+
+    metrics.append(
+        {
+            "Model": "Naive Baseline",
+            "mean_absolute_error": mean_absolute_error(y_test, naive_pred),
+            "mean_squared_error": mean_squared_error(y_test, naive_pred),
+            "r2_score": r2_score(y_test, naive_pred)
+        }
+    )
+
+    metrics_df = pd.DataFrame(metrics)
+    metrics_df = metrics_df.sort_values("mean_absolute_error")
+    print(metrics_df)
 
     metrics_df = pd.DataFrame(metrics)
     print(metrics_df)
