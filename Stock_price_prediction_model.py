@@ -3,6 +3,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, TimeSeriesSplit
@@ -341,7 +342,7 @@ if os.path.exists("AMAZON_daily.csv"):
             }
         )
 
-        naive_pred = stock_data["Close"][split:]
+    naive_pred = stock_data["Close"][split:]
 
     metrics.append(
         {
@@ -356,9 +357,12 @@ if os.path.exists("AMAZON_daily.csv"):
     metrics_df = metrics_df.sort_values("mean_absolute_error")
     print(metrics_df)
 
-    metrics_df = pd.DataFrame(metrics)
-    print(metrics_df)
+    final_pipe = Pipeline([
+        ("scaler", StandardScaler()),
+        ("ridge", Ridge(alpha=0.1, max_iter=500))])
+    final_pipe.fit(x, y)
 
+    joblib.dump(final_pipe, "Amazon_dataset_model_pipe.pkl")
 
 else:
     print("File unavailable")
